@@ -52,6 +52,7 @@ const mongoUri = rawUri.replace(/^["']|["']$/g, '').trim();
 
 // ── Connect & Auto-Retry DB Connection ──
 let isConnecting = false;
+let lastConnectionError = null;
 
 function connectMongoDB() {
   if (mongoose.connection.readyState === 1 || isConnecting || !mongoUri) return;
@@ -60,10 +61,12 @@ function connectMongoDB() {
   mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 10000 })
     .then(() => {
       isConnecting = false;
+      lastConnectionError = null;
       console.log('✅ MongoDB Atlas connected successfully');
     })
     .catch((err) => {
       isConnecting = false;
+      lastConnectionError = err.message;
       console.error('❌ MongoDB Atlas connection error:', err.message);
       console.log('🔄 Retrying MongoDB connection in 3 seconds...');
       setTimeout(connectMongoDB, 3000);
@@ -80,7 +83,9 @@ app.use('/api', (req, res, next) => {
     connectMongoDB();
     return res.status(503).json({
       success: false,
-      message: 'Database is connecting. Please retry in 3 seconds.',
+      message: lastConnectionError
+        ? `MongoDB Connection Error: ${lastConnectionError}`
+        : 'Database is connecting. Please retry in 3 seconds.',
     });
   }
   next();
