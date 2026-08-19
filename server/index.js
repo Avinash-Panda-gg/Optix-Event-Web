@@ -46,6 +46,18 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// ── Database Connection Guard Middleware ──
+app.use('/api', (req, res, next) => {
+  if (req.path === '/health') return next();
+  if (mongoose.connection.readyState !== 1) {
+    return res.status(503).json({
+      success: false,
+      message: 'Database is connecting or blocked. Please ensure 0.0.0.0/0 is enabled in MongoDB Atlas Network Access.',
+    });
+  }
+  next();
+});
+
 // ── API Routes ──
 app.use('/api/auth', authRoutes);
 app.use('/api/game', gameRoutes);
@@ -89,7 +101,7 @@ if (!mongoUri) {
   console.error('❌ MONGO_URI environment variable is missing!');
 } else {
   console.log('🔄 Connecting to MongoDB Atlas...');
-  mongoose.connect(mongoUri)
+  mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 5000 })
     .then(() => {
       console.log('✅ MongoDB Atlas connected successfully');
     })
