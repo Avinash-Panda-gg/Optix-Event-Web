@@ -50,25 +50,37 @@ app.get('/api/health', (req, res) => {
 const rawUri = process.env.MONGO_URI || '';
 const mongoUri = rawUri.replace(/^["']|["']$/g, '').trim();
 
+// ── Connect & Auto-Retry DB Connection ──
+let isConnecting = false;
+
+function connectMongoDB() {
+  if (mongoose.connection.readyState === 1 || isConnecting || !mongoUri) return;
+  isConnecting = true;
+  console.log('🔄 Connecting to MongoDB Atlas...');
+  mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 10000 })
+    .then(() => {
+      isConnecting = false;
+      console.log('✅ MongoDB Atlas connected successfully');
+    })
+    .catch((err) => {
+      isConnecting = false;
+      console.error('❌ MongoDB Atlas connection error:', err.message);
+      console.log('🔄 Retrying MongoDB connection in 3 seconds...');
+      setTimeout(connectMongoDB, 3000);
+    });
+}
+
+connectMongoDB();
+
 // ── Database Connection Guard Middleware ──
-app.use('/api', async (req, res, next) => {
+app.use('/api', (req, res, next) => {
   if (req.path === '/health') return next();
 
   if (mongoose.connection.readyState !== 1) {
-    if (mongoose.connection.readyState === 0 && mongoUri) {
-      try {
-        console.log('🔄 Re-attempting MongoDB Atlas connection...');
-        await mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 8000 });
-      } catch (err) {
-        console.error('❌ MongoDB Atlas reconnect error:', err.message);
-      }
-    }
-  }
-
-  if (mongoose.connection.readyState !== 1) {
+    connectMongoDB();
     return res.status(503).json({
       success: false,
-      message: 'Database is connecting or blocked. Please ensure 0.0.0.0/0 is enabled in MongoDB Atlas Network Access.',
+      message: 'Database is connecting. Please retry in 3 seconds.',
     });
   }
   next();
@@ -109,20 +121,6 @@ app.use((err, req, res, next) => {
   console.error('Unhandled error:', err.stack);
   res.status(500).json({ success: false, message: 'Internal server error.' });
 });
-
-// ── DB + Server Start ──
-if (!mongoUri) {
-  console.error('❌ MONGO_URI environment variable is missing!');
-} else {
-  console.log('🔄 Connecting to MongoDB Atlas...');
-  mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 8000 })
-    .then(() => {
-      console.log('✅ MongoDB Atlas connected successfully');
-    })
-    .catch((err) => {
-      console.error('❌ MongoDB Atlas connection error:', err.message);
-    });
-}
 
 app.listen(PORT, () => {
   console.log(`🚀 AnalyticsQuest Server running on port ${PORT}`);
