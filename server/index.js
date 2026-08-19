@@ -50,19 +50,18 @@ const path = require('path');
 if (process.env.NODE_ENV === 'production') {
   const distPath = path.join(__dirname, '../client/dist');
   app.use(express.static(distPath));
-  app.get('*', (req, res) => {
-    if (!req.path.startsWith('/api')) {
-      res.sendFile(path.join(distPath, 'index.html'));
-    } else {
-      res.status(404).json({ success: false, message: `Route ${req.originalUrl} not found.` });
+  app.use((req, res, next) => {
+    if (req.method === 'GET' && !req.path.startsWith('/api')) {
+      return res.sendFile(path.join(distPath, 'index.html'));
     }
-  });
-} else {
-  // ── 404 ──
-  app.use((req, res) => {
-    res.status(404).json({ success: false, message: `Route ${req.originalUrl} not found.` });
+    next();
   });
 }
+
+// ── 404 ──
+app.use((req, res) => {
+  res.status(404).json({ success: false, message: `Route ${req.originalUrl} not found.` });
+});
 
 // ── Global Error Handler ──
 app.use((err, req, res, next) => {
