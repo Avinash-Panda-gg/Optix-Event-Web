@@ -4,7 +4,7 @@
   "description": "AnalyticsQuest / ISR Challenge MERN Web Application for OPTIX Club KSOM",
   "main": "index.js",
   "scripts": {
-    "build": "npm --prefix client install && npm --prefix client run build && npm --prefix server install",
+    "build": "npm --prefix client install --include=dev && npm --prefix client run build && npm --prefix server install --include=dev",
     "start": "npm --prefix server start",
     "seed": "npm --prefix server run seed",
     "server": "npm --prefix server run dev",
