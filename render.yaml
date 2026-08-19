@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: optix-analyticsquest
+    env: node
+    plan: free
+    buildCommand: npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: ADMIN_SECRET_KEY
+        value: optix_admin_2026
