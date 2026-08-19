@@ -46,9 +46,25 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// ── Clean & Parse MONGO_URI ──
+const rawUri = process.env.MONGO_URI || '';
+const mongoUri = rawUri.replace(/^["']|["']$/g, '').trim();
+
 // ── Database Connection Guard Middleware ──
-app.use('/api', (req, res, next) => {
+app.use('/api', async (req, res, next) => {
   if (req.path === '/health') return next();
+
+  if (mongoose.connection.readyState !== 1) {
+    if (mongoose.connection.readyState === 0 && mongoUri) {
+      try {
+        console.log('🔄 Re-attempting MongoDB Atlas connection...');
+        await mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 8000 });
+      } catch (err) {
+        console.error('❌ MongoDB Atlas reconnect error:', err.message);
+      }
+    }
+  }
+
   if (mongoose.connection.readyState !== 1) {
     return res.status(503).json({
       success: false,
@@ -95,13 +111,11 @@ app.use((err, req, res, next) => {
 });
 
 // ── DB + Server Start ──
-const mongoUri = process.env.MONGO_URI;
-
 if (!mongoUri) {
   console.error('❌ MONGO_URI environment variable is missing!');
 } else {
   console.log('🔄 Connecting to MongoDB Atlas...');
-  mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 5000 })
+  mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 8000 })
     .then(() => {
       console.log('✅ MongoDB Atlas connected successfully');
     })
