@@ -49,28 +49,39 @@ app.get('/api/health', (req, res) => {
 // ── Clean & Parse MONGO_URI ──
 const rawUri = process.env.MONGO_URI || '';
 const mongoUri = rawUri.replace(/^["']|["']$/g, '').trim();
+const rawDirectUri = process.env.MONGO_URI_DIRECT || '';
+const mongoUriDirect = rawDirectUri.replace(/^["']|["']$/g, '').trim();
 
 // ── Connect & Auto-Retry DB Connection ──
 let isConnecting = false;
 let lastConnectionError = null;
+let useDirect = false; // tracks whether SRV failed and we should use direct URI
 
-function connectMongoDB() {
-  if (mongoose.connection.readyState === 1 || isConnecting || !mongoUri) return;
+async function connectMongoDB() {
+  if (mongoose.connection.readyState === 1 || isConnecting) return;
+  const uri = (useDirect && mongoUriDirect) ? mongoUriDirect : mongoUri;
+  if (!uri) { console.error('❌ No MONGO_URI configured!'); return; }
+
   isConnecting = true;
-  console.log('🔄 Connecting to MongoDB Atlas...');
-  mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 10000 })
-    .then(() => {
-      isConnecting = false;
-      lastConnectionError = null;
-      console.log('✅ MongoDB Atlas connected successfully');
-    })
-    .catch((err) => {
-      isConnecting = false;
-      lastConnectionError = err.message;
-      console.error('❌ MongoDB Atlas connection error:', err.message);
-      console.log('🔄 Retrying MongoDB connection in 3 seconds...');
-      setTimeout(connectMongoDB, 3000);
-    });
+  console.log(`🔄 Connecting to MongoDB${useDirect ? ' (direct, bypassing DNS SRV)' : ' Atlas'}...`);
+  try {
+    await mongoose.connect(uri, { serverSelectionTimeoutMS: 10000 });
+    isConnecting = false;
+    lastConnectionError = null;
+    console.log('✅ MongoDB connected successfully');
+  } catch (err) {
+    isConnecting = false;
+    lastConnectionError = err.message;
+    console.error('❌ MongoDB connection error:', err.message);
+
+    // If SRV DNS lookup failed, switch to direct connection string
+    if (!useDirect && mongoUriDirect && err.message.includes('querySrv')) {
+      console.log('⚡ DNS SRV blocked — switching to direct connection string...');
+      useDirect = true;
+    }
+    console.log('🔄 Retrying MongoDB connection in 3 seconds...');
+    setTimeout(connectMongoDB, 3000);
+  }
 }
 
 connectMongoDB();
