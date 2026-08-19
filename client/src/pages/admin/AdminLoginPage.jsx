@@ -55,6 +55,7 @@ export default function AdminLoginPage() {
                 value={rollNumber}
                 onChange={(e) => setRollNumber(e.target.value)}
                 className="form-input uppercase"
+                autoComplete="username"
                 required
               />
             </div>
@@ -67,6 +68,7 @@ export default function AdminLoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="form-input"
+                autoComplete="current-password"
                 required
               />
             </div>

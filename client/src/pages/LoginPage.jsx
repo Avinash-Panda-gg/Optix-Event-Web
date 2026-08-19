@@ -74,6 +74,7 @@ export default function LoginPage() {
                 value={rollNumber}
                 onChange={(e) => setRollNumber(e.target.value)}
                 className="form-input uppercase"
+                autoComplete="username"
                 required
               />
             </div>
@@ -86,6 +87,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="form-input"
+                autoComplete="current-password"
                 required
               />
             </div>

@@ -127,6 +127,7 @@ export default function RegisterPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="form-input"
+                autoComplete="new-password"
                 required
               />
             </div>
