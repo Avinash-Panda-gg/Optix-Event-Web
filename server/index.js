@@ -70,17 +70,24 @@ app.use((err, req, res, next) => {
 });
 
 // ── DB + Server Start ──
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => {
-    console.log('✅ MongoDB connected to:', process.env.MONGO_URI);
-    app.listen(PORT, () => {
-      console.log(`🚀 AnalyticsQuest Server running at http://localhost:${PORT}`);
-      console.log(`📊 API Health: http://localhost:${PORT}/api/health`);
+const mongoUri = process.env.MONGO_URI;
+
+if (!mongoUri) {
+  console.error('❌ MONGO_URI environment variable is missing!');
+} else {
+  console.log('🔄 Connecting to MongoDB Atlas...');
+  mongoose.connect(mongoUri)
+    .then(() => {
+      console.log('✅ MongoDB Atlas connected successfully');
+    })
+    .catch((err) => {
+      console.error('❌ MongoDB Atlas connection error:', err.message);
     });
-  })
-  .catch((err) => {
-    console.error('❌ MongoDB connection failed:', err.message);
-    process.exit(1);
-  });
+}
+
+app.listen(PORT, () => {
+  console.log(`🚀 AnalyticsQuest Server running on port ${PORT}`);
+  console.log(`📊 API Health check: http://localhost:${PORT}/api/health`);
+});
 
 module.exports = app;
