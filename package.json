@@ -1,0 +1,15 @@
+{
+  "name": "optix-analyticsquest-isr",
+  "version": "1.0.0",
+  "description": "AnalyticsQuest / ISR Challenge MERN Web Application for OPTIX Club KSOM",
+  "main": "index.js",
+  "scripts": {
+    "server": "npm --prefix server run dev",
+    "client": "npm --prefix client run dev",
+    "seed": "npm --prefix server run seed",
+    "dev": "concurrently \"npm run server\" \"npm run client\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
